@@ -8,7 +8,6 @@ let tokenClient;
 
 
 
-// **Inicializar Google API Client**
 export function initializeGoogleClient() {
   return new Promise((resolve, reject) => {
     if (typeof gapi === 'undefined') {
@@ -19,26 +18,27 @@ export function initializeGoogleClient() {
     gapi.load('client', async () => {
       try {
         await gapi.client.init({
-          apiKey: API_KEY,
+          apiKey: API_KEY, // Asegúrate de que esta clave esté habilitada para Google Sheets
           discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
         });
 
         const accessToken = localStorage.getItem('google_access_token');
         if (accessToken) {
-          gapi.auth.setToken({ access_token: accessToken }); // Configura el token
-          console.log("Token configurado correctamente en gapi.");
+          gapi.auth.setToken({ access_token: accessToken });
+          console.log('Token configurado correctamente.');
         }
 
         gapiInitialized = true;
-        console.log("Cliente de Google inicializado correctamente.");
+        console.log('Cliente de Google inicializado correctamente.');
         resolve();
       } catch (error) {
-        console.error("Error inicializando cliente de Google:", error);
+        console.error('Error inicializando cliente de Google:', error);
         reject(error);
       }
     });
   });
 }
+
 
 
 
