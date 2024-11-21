@@ -22,6 +22,7 @@ async function initializeGoogleClient() {
                     discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"]
                 });
                 gapiInitialized = true;
+                console.log('Cliente de Google inicializado correctamente.');
                 resolve();
             } catch (error) {
                 console.error('Error inicializando cliente de Google:', error);
@@ -49,7 +50,8 @@ async function authenticateOnLoad() {
             }
         });
 
-        tokenClient.requestAccessToken({ prompt: '' });
+        // Solicitar token de acceso de inmediato
+        tokenClient.requestAccessToken({ prompt: '' }); // `prompt: ''` para ventana emergente inmediata
     } catch (error) {
         console.error('Error durante la autenticación automática:', error);
     }
@@ -98,7 +100,13 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
     const password = document.getElementById('password').value.trim();
 
     if (!username || !password) {
-        alert('Completa todos los campos.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Completa todos los campos.',
+            timer: 3000,
+            showConfirmButton: false
+        });
         return;
     }
 
@@ -107,19 +115,43 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
         const user = credentials.find(row => row[0] === username && row[1] === password);
 
         if (user) {
-            alert('Inicio de sesión exitoso.');
-            window.location.href = 'dashboard.html';
+            Swal.fire({
+                icon: 'success',
+                title: 'Inicio de sesión exitoso',
+                text: 'Redirigiendo al dashboard...',
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => {
+                window.location.href = 'dashboard.html';
+            });
         } else {
-            alert('Usuario o contraseña incorrectos.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Usuario o contraseña incorrectos.',
+                timer: 3000,
+                showConfirmButton: false
+            });
         }
     } catch (error) {
         console.error('Error durante el inicio de sesión:', error);
-        alert('Hubo un problema al validar las credenciales.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Hubo un problema al validar las credenciales.',
+            timer: 3000,
+            showConfirmButton: false
+        });
     }
 });
 
 // **Ejecutar autenticación automática al cargar**
 window.onload = async () => {
-    await authenticateOnLoad();
-    await getConnectionStatus();
+    try {
+        await authenticateOnLoad(); // Autenticación automática
+        await getConnectionStatus(); // Verificar conexión
+    } catch (error) {
+        console.error('Error al cargar la aplicación:', error);
+        document.getElementById('connection-status').textContent = 'Desconectado';
+    }
 };
