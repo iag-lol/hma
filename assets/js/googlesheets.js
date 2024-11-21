@@ -19,7 +19,7 @@ export function initializeGoogleClient() {
       try {
         await gapi.client.init({
           apiKey: API_KEY,
-          discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"], // URL de discovery
+          discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"], // Configuración necesaria
         });
 
         gapiInitialized = true;
@@ -36,7 +36,7 @@ export function initializeGoogleClient() {
 // **Autenticación Automática al Cargar**
 async function authenticateOnLoad() {
   try {
-    await initializeGoogleClient();
+    await initializeGoogleClient(); // Asegurar que el cliente esté inicializado
 
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
@@ -51,15 +51,17 @@ async function authenticateOnLoad() {
       },
     });
 
-    tokenClient.requestAccessToken({ prompt: '' }); // Solicitar token sin ventana emergente
+    // Solicitar acceso inmediatamente al cargar la página
+    tokenClient.requestAccessToken({ prompt: '' }); // No muestra ventana emergente
   } catch (error) {
     console.error("Error durante la autenticación automática:", error);
   }
 }
 
+// Ejecutar la autenticación tan pronto como se cargue la página
 window.onload = authenticateOnLoad;
 
-// **Autenticación Manual**
+// **Autenticación Manual (si se necesita)**
 export function authenticateUser() {
   return new Promise(async (resolve, reject) => {
     if (!gapiInitialized) {
@@ -87,7 +89,7 @@ export function authenticateUser() {
       },
     });
 
-    tokenClient.requestAccessToken({ prompt: '' }); // Solicitar token sin interrupciones
+    tokenClient.requestAccessToken({ prompt: '' }); // Solicitar token
   });
 }
 
@@ -99,7 +101,7 @@ export function getConnectionStatus() {
 
   return gapi.client.sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: 'credenciales!E1', // Cambiar al rango correcto si es necesario
+    range: 'credenciales!E1',
   }).then(response => {
     const value = response.result.values ? response.result.values[0][0] : null;
     console.log('Estado de conexión (E1):', value);
@@ -110,101 +112,66 @@ export function getConnectionStatus() {
   });
 }
 
-// **Obtener Credenciales desde Google Sheets**
-export function getSheetData() {
-    if (!gapiInitialized) {
-        throw new Error('Google API Client no está inicializado.');
-    }
-
-    return gapi.client.sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range: 'credenciales!A2:B', // Cambiar al rango correspondiente
-    }).then(response => response.result.values || [])
-        .catch(error => {
-            console.error('Error al obtener datos de credenciales:', error);
-            throw error;
-        });
-}
-
-// **Verificar el Estado de Conexión**
-export function getConnectionStatus() {
-    if (!gapiInitialized) {
-        throw new Error('Google API Client no está inicializado.');
-    }
-
-    return gapi.client.sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range: 'credenciales!E1',
-    }).then(response => {
-        const value = response.result.values ? response.result.values[0][0] : null;
-        console.log('Estado de conexión (E1):', value);
-        return value;
-    }).catch(error => {
-        console.error('Error al obtener el estado de conexión:', error);
-        throw error;
-    });
-}
-
 // **Leer Datos de la Hoja HHEE**
 export async function fetchSheetDataHHEE() {
-    if (!gapiInitialized) {
-        throw new Error('Google API Client no está inicializado.');
-    }
+  if (!gapiInitialized) {
+    throw new Error('Google API Client no está inicializado.');
+  }
 
-    try {
-        const response = await gapi.client.sheets.spreadsheets.values.get({
-            spreadsheetId: SHEET_ID,
-            range: 'HHEE!A2:F',
-        });
-        return response.result.values || [];
-    } catch (error) {
-        console.error("Error al leer datos de Google Sheets:", error);
-        throw error;
-    }
+  try {
+    const response = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: 'HHEE!A2:F',
+    });
+    return response.result.values || [];
+  } catch (error) {
+    console.error("Error al leer datos de Google Sheets:", error);
+    throw error;
+  }
 }
 
 // **Escribir Datos en la Hoja HHEE**
 export async function appendSheetDataHHEE(rowData) {
-    if (!gapiInitialized) {
-        throw new Error('Google API Client no está inicializado.');
-    }
+  if (!gapiInitialized) {
+    throw new Error('Google API Client no está inicializado.');
+  }
 
-    try {
-        const response = await gapi.client.sheets.spreadsheets.values.append({
-            spreadsheetId: SHEET_ID,
-            range: 'HHEE!A:F',
-            valueInputOption: 'RAW',
-            resource: {
-                values: [rowData],
-            },
-        });
-        console.log("Registro agregado correctamente:", response.result);
-        return response.result;
-    } catch (error) {
-        console.error("Error al escribir datos en Google Sheets:", error);
-        throw error;
-    }
+  try {
+    const response = await gapi.client.sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: 'HHEE!A:F',
+      valueInputOption: 'RAW',
+      resource: {
+        values: [rowData],
+      },
+    });
+    console.log("Registro agregado correctamente:", response.result);
+    return response.result;
+  } catch (error) {
+    console.error("Error al escribir datos en Google Sheets:", error);
+    throw error;
+  }
 }
 
 // **Escribir Datos en la Hoja Personal**
 export async function appendPersonalData(rowData) {
-    if (!gapiInitialized) {
-        throw new Error('Google API Client no está inicializado.');
-    }
+  if (!gapiInitialized) {
+    throw new Error('Google API Client no está inicializado.');
+  }
 
-    try {
-        const response = await gapi.client.sheets.spreadsheets.values.append({
-            spreadsheetId: SHEET_ID,
-            range: 'personal!B:C', // Especifica las columnas B y C
-            valueInputOption: 'RAW',
-            resource: {
-                values: [rowData], // Los datos deben corresponder al rango especificado (B y C)
-            },
-        });
-        console.log("Registro agregado correctamente en personal:", response.result);
-        return response.result;
-    } catch (error) {
-        console.error("Error al escribir datos en la hoja 'personal':", error);
-        throw error;
-    }
+  try {
+    const response = await gapi.client.sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: 'personal!B:C', // Especifica las columnas B y C
+      valueInputOption: 'RAW',
+      resource: {
+        values: [rowData], // Los datos deben corresponder al rango especificado (B y C)
+      },
+    });
+    console.log("Registro agregado correctamente en personal:", response.result);
+    return response.result;
+  } catch (error) {
+    console.error("Error al escribir datos en la hoja 'personal':", error);
+    throw error;
+  }
 }
