@@ -8,87 +8,106 @@ let tokenClient;
 
 // **Inicializar Google API Client**
 export function initializeGoogleClient() {
-    return new Promise((resolve, reject) => {
-        if (typeof gapi === 'undefined') {
-            console.error("Google API Client no se cargó. Revisa si incluiste el script gapi.js.");
-            reject(new Error('Google API Client no está disponible.'));
-            return;
-        }
+  return new Promise((resolve, reject) => {
+    if (typeof gapi === 'undefined') {
+      console.error("Google API Client no se cargó. Revisa si incluiste el script gapi.js.");
+      reject(new Error('Google API Client no está disponible.'));
+      return;
+    }
 
-        gapi.load('client', async () => {
-            try {
-                await gapi.client.init({
-                    apiKey: API_KEY,
-                    discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
-                });
-
-                gapiInitialized = true;
-                console.log("Cliente de Google inicializado correctamente.");
-                resolve();
-            } catch (error) {
-                console.error("Error inicializando cliente de Google:", error);
-                reject(error);
-            }
+    gapi.load('client', async () => {
+      try {
+        await gapi.client.init({
+          apiKey: API_KEY,
+          discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
         });
+
+        gapiInitialized = true;
+        console.log("Cliente de Google inicializado correctamente.");
+        resolve();
+      } catch (error) {
+        console.error("Error inicializando cliente de Google:", error);
+        reject(error);
+      }
     });
+  });
 }
 
 // **Autenticación Automática al Cargar**
 async function authenticateOnLoad() {
-    try {
-        await initializeGoogleClient();
+  try {
+    await initializeGoogleClient();
 
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            callback: (tokenResponse) => {
-                if (!tokenResponse.error) {
-                    console.log("Usuario autenticado automáticamente.");
-                    localStorage.setItem('google_access_token', tokenResponse.access_token);
-                } else {
-                    console.error("Error durante la autenticación automática:", tokenResponse.error);
-                }
-            },
-        });
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (tokenResponse) => {
+        if (!tokenResponse.error) {
+          console.log("Usuario autenticado automáticamente.");
+          localStorage.setItem('google_access_token', tokenResponse.access_token);
+        } else {
+          console.error("Error durante la autenticación automática:", tokenResponse.error);
+        }
+      },
+    });
 
-        tokenClient.requestAccessToken({ prompt: '' }); // No muestra ventana emergente
-    } catch (error) {
-        console.error("Error durante la autenticación automática:", error);
-    }
+    tokenClient.requestAccessToken({ prompt: '' }); // No muestra ventana emergente
+  } catch (error) {
+    console.error("Error durante la autenticación automática:", error);
+  }
 }
 
 window.onload = authenticateOnLoad;
 
 // **Autenticación Manual**
 export function authenticateUser() {
-    return new Promise(async (resolve, reject) => {
-        if (!gapiInitialized) {
-            try {
-                await initializeGoogleClient();
-            } catch (error) {
-                console.error("Error inicializando Google API antes de autenticar:", error);
-                reject(new Error('Google API Client no está inicializado.'));
-                return;
-            }
+  return new Promise(async (resolve, reject) => {
+    if (!gapiInitialized) {
+      try {
+        await initializeGoogleClient();
+      } catch (error) {
+        console.error("Error inicializando Google API antes de autenticar:", error);
+        reject(new Error('Google API Client no está inicializado.'));
+        return;
+      }
+    }
+
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (tokenResponse) => {
+        if (tokenResponse.error) {
+          console.error("Error autenticando al usuario:", tokenResponse.error);
+          reject(tokenResponse.error);
+        } else {
+          console.log("Usuario autenticado correctamente.");
+          localStorage.setItem('google_access_token', tokenResponse.access_token);
+          resolve(tokenResponse);
         }
-
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            callback: (tokenResponse) => {
-                if (tokenResponse.error) {
-                    console.error("Error autenticando al usuario:", tokenResponse.error);
-                    reject(tokenResponse.error);
-                } else {
-                    console.log("Usuario autenticado correctamente.");
-                    localStorage.setItem('google_access_token', tokenResponse.access_token);
-                    resolve(tokenResponse);
-                }
-            },
-        });
-
-        tokenClient.requestAccessToken({ prompt: '' });
+      },
     });
+
+    tokenClient.requestAccessToken({ prompt: '' });
+  });
+}
+
+// **Verificar el Estado de Conexión**
+export function getConnectionStatus() {
+  if (!gapiInitialized) {
+    throw new Error('Google API Client no está inicializado.');
+  }
+
+  return gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: 'credenciales!E1',
+  }).then(response => {
+    const value = response.result.values ? response.result.values[0][0] : null;
+    console.log('Estado de conexión (E1):', value);
+    return value;
+  }).catch(error => {
+    console.error('Error al obtener el estado de conexión:', error);
+    throw error;
+  });
 }
 
 // **Obtener Credenciales desde Google Sheets**
