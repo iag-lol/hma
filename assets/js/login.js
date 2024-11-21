@@ -35,42 +35,9 @@ async function initializeGoogleClient() {
 
 // **Autenticación Automática**
 async function authenticateOnLoad() {
-  if (!gapiInitialized) {
-    try {
-      await initializeGoogleClient();
-    } catch (error) {
-      console.error("Error inicializando Google API Client antes de autenticar:", error);
-      return;
-    }
-  }
-
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
-    callback: (tokenResponse) => {
-      if (tokenResponse.error) {
-        console.error("Error durante la autenticación automática:", tokenResponse.error);
-      } else {
-        console.log("Autenticación automática exitosa.");
-        localStorage.setItem("google_access_token", tokenResponse.access_token);
-      }
-    },
-  });
-
-  tokenClient.requestAccessToken({ prompt: "" }); // Autenticación silenciosa
-}
-
-// **Autenticación Manual**
-async function authenticateUser() {
-  return new Promise(async (resolve, reject) => {
+  try {
     if (!gapiInitialized) {
-      try {
-        await initializeGoogleClient();
-      } catch (error) {
-        console.error("Error inicializando Google API antes de autenticar:", error);
-        reject(new Error("Google API Client no está inicializado."));
-        return;
-      }
+      await initializeGoogleClient();
     }
 
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -78,35 +45,17 @@ async function authenticateUser() {
       scope: SCOPES,
       callback: (tokenResponse) => {
         if (tokenResponse.error) {
-          console.error("Error autenticando al usuario:", tokenResponse.error);
-          reject(tokenResponse.error);
+          console.error("Error durante la autenticación automática:", tokenResponse.error);
         } else {
-          console.log("Usuario autenticado correctamente.");
+          console.log("Autenticación automática exitosa.");
           localStorage.setItem("google_access_token", tokenResponse.access_token);
-          resolve(tokenResponse);
         }
       },
     });
 
-    tokenClient.requestAccessToken({ prompt: "consent" });
-  });
-}
-
-// **Obtener Credenciales desde Google Sheets**
-async function getSheetData() {
-  if (!gapiInitialized) {
-    throw new Error("Google API Client no está inicializado.");
-  }
-
-  try {
-    const response = await gapi.client.sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: "credenciales!A2:B", // Cambiar al rango correspondiente
-    });
-    return response.result.values || [];
+    tokenClient.requestAccessToken({ prompt: "" }); // Autenticación silenciosa
   } catch (error) {
-    console.error("Error al obtener datos de credenciales:", error);
-    throw error;
+    console.error("Error durante la autenticación automática:", error);
   }
 }
 
@@ -118,56 +67,43 @@ document.getElementById("loginForm").addEventListener("submit", async function (
   const password = document.getElementById("password").value;
 
   if (!username || !password) {
-    Swal.fire({
-      icon: "error",
-      title: "Campos vacíos",
-      text: "Por favor ingresa usuario y contraseña.",
-      showConfirmButton: false,
-      timer: 3000,
-      timerProgressBar: true,
-    });
+    alert("Por favor, ingresa usuario y contraseña.");
     return;
   }
 
   try {
-    const tokenResponse = await authenticateUser();
-    localStorage.setItem("google_access_token", tokenResponse.access_token);
-
     const credentials = await getSheetData();
     const match = credentials.find((row) => row[0] === username && row[1] === password);
 
     if (match) {
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "Inicio de sesión exitoso",
-        showConfirmButton: false,
-        timer: 3000,
-        didClose: () => {
-          window.location.href = "views/dashboard.html";
-        },
-      });
+      alert("Inicio de sesión exitoso");
+      window.location.href = "views/dashboard.html";
     } else {
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "error",
-        title: "Usuario o contraseña incorrectos",
-        showConfirmButton: false,
-        timer: 3000,
-      });
+      alert("Usuario o contraseña incorrectos.");
     }
   } catch (error) {
     console.error("Error durante la validación de credenciales:", error);
-    Swal.fire({
-      icon: "error",
-      title: "Error de autenticación",
-      text: "No se pudo completar el inicio de sesión. Inténtalo nuevamente.",
-      showConfirmButton: true,
-    });
+    alert("Hubo un problema al validar tus credenciales. Inténtalo más tarde.");
   }
 });
 
-// **Autenticación automática al cargar la página**
+// **Obtener Datos de Google Sheets**
+async function getSheetData() {
+  if (!gapiInitialized) {
+    throw new Error("Google API Client no está inicializado.");
+  }
+
+  try {
+    const response = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: "credenciales!A2:B",
+    });
+    return response.result.values || [];
+  } catch (error) {
+    console.error("Error al obtener datos de credenciales:", error);
+    throw error;
+  }
+}
+
+// **Autenticación Automática al cargar**
 window.onload = authenticateOnLoad;
