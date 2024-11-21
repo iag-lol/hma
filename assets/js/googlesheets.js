@@ -38,7 +38,7 @@ export function initializeGoogleClient() {
         });
     });
 }
-window.onload = authenticateOnLoad;
+
 
 
 if (typeof gapi === 'undefined') {
