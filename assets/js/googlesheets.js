@@ -8,37 +8,36 @@ let tokenClient;
 
 
 
-export function initializeGoogleClient() {
-  return new Promise((resolve, reject) => {
-    if (typeof gapi === 'undefined') {
-      reject(new Error('Google API Client no está disponible.'));
-      return;
-    }
 
-    gapi.load('client', async () => {
-      try {
-        await gapi.client.init({
-          apiKey: API_KEY, // Asegúrate de que esta clave esté habilitada para Google Sheets
-          discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
-        });
+async function authenticateOnLoad() {
+  try {
+      await initializeGoogleClient();
 
-        const accessToken = localStorage.getItem('google_access_token');
-        if (accessToken) {
-          gapi.auth.setToken({ access_token: accessToken });
-          console.log('Token configurado correctamente.');
-        }
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          callback: (tokenResponse) => {
+              if (tokenResponse.error) {
+                  console.error("Error autenticando al usuario:", tokenResponse.error);
+              } else {
+                  console.log("Usuario autenticado correctamente.");
+                  localStorage.setItem('google_access_token', tokenResponse.access_token);
+              }
+          },
+      });
 
-        gapiInitialized = true;
-        console.log('Cliente de Google inicializado correctamente.');
-        resolve();
-      } catch (error) {
-        console.error('Error inicializando cliente de Google:', error);
-        reject(error);
-      }
-    });
-  });
+      tokenClient.requestAccessToken({ prompt: '' });
+  } catch (error) {
+      console.error("Error durante la autenticación automática:", error);
+  }
 }
 
+window.onload = authenticateOnLoad;
+
+
+if (typeof gapi === 'undefined') {
+  console.error("Google API Client no se cargó. Revisa si incluiste el script gapi.js.");
+}
 
 
 
