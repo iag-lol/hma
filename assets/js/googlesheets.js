@@ -19,7 +19,7 @@ export function initializeGoogleClient() {
       try {
         await gapi.client.init({
           apiKey: API_KEY,
-          discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+          discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"], // URL de discovery
         });
 
         gapiInitialized = true;
@@ -44,14 +44,14 @@ async function authenticateOnLoad() {
       callback: (tokenResponse) => {
         if (!tokenResponse.error) {
           console.log("Usuario autenticado automáticamente.");
-          localStorage.setItem('google_access_token', tokenResponse.access_token);
+          localStorage.setItem('google_access_token', tokenResponse.access_token); // Guardar token
         } else {
           console.error("Error durante la autenticación automática:", tokenResponse.error);
         }
       },
     });
 
-    tokenClient.requestAccessToken({ prompt: '' }); // No muestra ventana emergente
+    tokenClient.requestAccessToken({ prompt: '' }); // Solicitar token sin ventana emergente
   } catch (error) {
     console.error("Error durante la autenticación automática:", error);
   }
@@ -81,16 +81,17 @@ export function authenticateUser() {
           reject(tokenResponse.error);
         } else {
           console.log("Usuario autenticado correctamente.");
-          localStorage.setItem('google_access_token', tokenResponse.access_token);
+          localStorage.setItem('google_access_token', tokenResponse.access_token); // Guardar token
           resolve(tokenResponse);
         }
       },
     });
 
-    tokenClient.requestAccessToken({ prompt: '' });
+    tokenClient.requestAccessToken({ prompt: '' }); // Solicitar token sin interrupciones
   });
 }
 
+// **Verificar el Estado de Conexión**
 export function getConnectionStatus() {
   if (!gapiInitialized) {
     throw new Error('Google API Client no está inicializado.');
@@ -98,7 +99,7 @@ export function getConnectionStatus() {
 
   return gapi.client.sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: 'credenciales!E1',
+    range: 'credenciales!E1', // Cambiar al rango correcto si es necesario
   }).then(response => {
     const value = response.result.values ? response.result.values[0][0] : null;
     console.log('Estado de conexión (E1):', value);
