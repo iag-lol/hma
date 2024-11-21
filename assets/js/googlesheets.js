@@ -91,7 +91,6 @@ export function authenticateUser() {
   });
 }
 
-// **Verificar el Estado de Conexión**
 export function getConnectionStatus() {
   if (!gapiInitialized) {
     throw new Error('Google API Client no está inicializado.');
