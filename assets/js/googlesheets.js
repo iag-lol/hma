@@ -92,7 +92,7 @@ export function authenticateUser() {
 }
 
 // **Obtener Credenciales desde Google Sheets**
-export function fetchSheetCredentials() {
+export function getSheetData() {
     if (!gapiInitialized) {
         throw new Error('Google API Client no está inicializado.');
     }
