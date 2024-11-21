@@ -6,10 +6,11 @@ const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 let gapiInitialized = false;
 let tokenClient;
 
-// Inicializar Google API
+// **Inicializar Google API**
 async function initializeGoogleClient() {
     return new Promise((resolve, reject) => {
         if (typeof gapi === 'undefined') {
+            console.error('Google API Client no se cargó. Revisa si incluiste el script gapi.js.');
             reject(new Error('Google API Client no está disponible.'));
             return;
         }
@@ -23,16 +24,18 @@ async function initializeGoogleClient() {
                 gapiInitialized = true;
                 resolve();
             } catch (error) {
+                console.error('Error inicializando cliente de Google:', error);
                 reject(error);
             }
         });
     });
 }
 
-// Autenticación Automática
+// **Autenticación Automática**
 async function authenticateOnLoad() {
     try {
         await initializeGoogleClient();
+
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: SCOPES,
@@ -52,23 +55,26 @@ async function authenticateOnLoad() {
     }
 }
 
-// Verificar Estado de Conexión
+// **Verificar Estado de Conexión**
 async function getConnectionStatus() {
-    if (!gapiInitialized) throw new Error('Google API Client no está inicializado.');
+    if (!gapiInitialized) {
+        throw new Error('Google API Client no está inicializado.');
+    }
 
     try {
         const response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: SHEET_ID,
             range: 'credenciales!E1'
         });
-        return response.result.values ? response.result.values[0][0] : null;
+        const status = response.result.values ? response.result.values[0][0] : null;
+        document.getElementById('connection-status').textContent = status || 'Desconectado';
     } catch (error) {
         console.error('Error al verificar el estado de conexión:', error);
         throw error;
     }
 }
 
-// Obtener Credenciales
+// **Obtener Datos de Credenciales**
 async function getSheetData() {
     if (!gapiInitialized) throw new Error('Google API Client no está inicializado.');
 
@@ -79,39 +85,41 @@ async function getSheetData() {
         });
         return response.result.values || [];
     } catch (error) {
-        console.error('Error al obtener credenciales:', error);
+        console.error('Error al obtener datos de credenciales:', error);
         throw error;
     }
 }
 
-// Manejar Inicio de Sesión
+// **Manejar Inicio de Sesión**
 document.getElementById('loginForm').addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
 
     if (!username || !password) {
-        Swal.fire('Error', 'Debes completar ambos campos.', 'error');
+        alert('Completa todos los campos.');
         return;
     }
 
     try {
         const credentials = await getSheetData();
-        const match = credentials.find(row => row[0] === username && row[1] === password);
+        const user = credentials.find(row => row[0] === username && row[1] === password);
 
-        if (match) {
-            Swal.fire('Éxito', 'Inicio de sesión exitoso.', 'success').then(() => {
-                window.location.href = 'views/dashboard.html';
-            });
+        if (user) {
+            alert('Inicio de sesión exitoso.');
+            window.location.href = 'dashboard.html';
         } else {
-            Swal.fire('Error', 'Usuario o contraseña incorrectos.', 'error');
+            alert('Usuario o contraseña incorrectos.');
         }
     } catch (error) {
-        console.error('Error durante la validación de credenciales:', error);
-        Swal.fire('Error', 'Ocurrió un problema con la autenticación.', 'error');
+        console.error('Error durante el inicio de sesión:', error);
+        alert('Hubo un problema al validar las credenciales.');
     }
 });
 
-// Ejecutar autenticación automática al cargar
-window.onload = authenticateOnLoad;
+// **Ejecutar autenticación automática al cargar**
+window.onload = async () => {
+    await authenticateOnLoad();
+    await getConnectionStatus();
+};
