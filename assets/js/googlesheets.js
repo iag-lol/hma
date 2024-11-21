@@ -6,38 +6,31 @@ export const SCOPES = "https://www.googleapis.com/auth/spreadsheets";
 let gapiInitialized = false;
 let tokenClient;
 
-
-
-
-export function initializeGoogleClient() {
-    return new Promise((resolve, reject) => {
-        if (typeof gapi === 'undefined') {
-            reject(new Error('Google API Client no está disponible. ¿Incluiste el script de gapi?'));
-            return;
-        }
-
-        gapi.load('client', async () => {
-            try {
-                await gapi.client.init({
-                    apiKey: API_KEY,
-                    discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
-                });
-
-                const accessToken = localStorage.getItem('google_access_token');
-                if (accessToken) {
-                    gapi.auth.setToken({ access_token: accessToken });
+async function authenticateOnLoad() {
+    try {
+        await initializeGoogleClient();
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: SCOPES,
+            callback: (tokenResponse) => {
+                if (!tokenResponse.error) {
+                    console.log("Usuario autenticado automáticamente.");
+                    localStorage.setItem('google_access_token', tokenResponse.access_token);
+                } else {
+                    console.error("Error durante la autenticación automática:", tokenResponse.error);
                 }
-
-                gapiInitialized = true;
-                console.log("Cliente de Google inicializado correctamente.");
-                resolve();
-            } catch (error) {
-                console.error("Error inicializando cliente de Google (detalles):", error);
-                reject(error);
-            }
+            },
         });
-    });
+        tokenClient.requestAccessToken({ prompt: '' });
+    } catch (error) {
+        console.error("Error durante la autenticación automática:", error);
+    }
 }
+
+window.onload = authenticateOnLoad;
+
+
+export function initializeGoogleClient
 
 
 
@@ -48,29 +41,34 @@ if (typeof gapi === 'undefined') {
 
 
 export function authenticateUser() {
-  return new Promise((resolve, reject) => {
-    if (!gapiInitialized) {
-      reject(new Error('Google API Client no está inicializado.'));
-      return;
-    }
-
-    const tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: (tokenResponse) => {
-        if (tokenResponse.error) {
-          console.error("Error autenticando al usuario:", tokenResponse.error);
-          reject(tokenResponse.error);
-        } else {
-          console.log("Usuario autenticado correctamente.");
-          localStorage.setItem('google_access_token', tokenResponse.access_token); // Guarda el token actualizado
-          resolve(tokenResponse);
+    return new Promise(async (resolve, reject) => {
+        if (!gapiInitialized) {
+            try {
+                await initializeGoogleClient();
+            } catch (error) {
+                console.error("Error inicializando Google API antes de autenticar:", error);
+                reject(new Error('Google API Client no está inicializado.'));
+                return;
+            }
         }
-      },
-    });
 
-    tokenClient.requestAccessToken({ prompt: '' }); // Usa 'none' si quieres evitar reautenticación visual
-  });
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: SCOPES,
+            callback: (tokenResponse) => {
+                if (tokenResponse.error) {
+                    console.error("Error autenticando al usuario:", tokenResponse.error);
+                    reject(tokenResponse.error);
+                } else {
+                    console.log("Usuario autenticado correctamente.");
+                    localStorage.setItem('google_access_token', tokenResponse.access_token);
+                    resolve(tokenResponse);
+                }
+            },
+        });
+
+        tokenClient.requestAccessToken({ prompt: '' });
+    });
 }
 
 
