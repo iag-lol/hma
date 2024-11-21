@@ -20,8 +20,9 @@ async function initializeGoogleClient() {
       try {
         await gapi.client.init({
           apiKey: API_KEY,
-          discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+          discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"], // Configuración necesaria
         });
+
         gapiInitialized = true;
         console.log("Cliente de Google inicializado correctamente.");
         resolve();
@@ -105,51 +106,14 @@ async function getSheetData() {
   }
 }
 
-// **Verificar el Estado de Conexión**
-async function getConnectionStatus() {
-  if (!gapiInitialized) {
-    throw new Error('Google API Client no está inicializado.');
-  }
-
-  try {
-    const response = await gapi.client.sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: 'credenciales!E1',
-    });
-    const value = response.result.values ? response.result.values[0][0] : null;
-    console.log('Estado de conexión (E1):', value);
-    return value;
-  } catch (error) {
-    console.error("Error al obtener el estado de conexión:", error);
-    throw error;
-  }
-}
-
 // **Lógica de Login**
 window.onload = async function () {
   try {
     await authenticateOnLoad(); // Autenticar automáticamente
 
-    // Verificar el estado de conexión
-    const status = await getConnectionStatus();
-    const statusElement = document.getElementById('connection-status');
-
-    if (status === 'Conectado') {
-      statusElement.textContent = 'Conectado';
-      statusElement.classList.add('connected');
-      statusElement.classList.remove('disconnected');
-    } else {
-      statusElement.textContent = 'Desconectado';
-      statusElement.classList.add('disconnected');
-      statusElement.classList.remove('connected');
-    }
+    console.log("Autenticación automática completada.");
   } catch (error) {
-    console.error('Error al inicializar o verificar el estado de conexión:', error);
-
-    const statusElement = document.getElementById('connection-status');
-    statusElement.textContent = 'Desconectado';
-    statusElement.classList.add('disconnected');
-    statusElement.classList.remove('connected');
+    console.error('Error durante la autenticación automática:', error);
   }
 };
 
