@@ -10,8 +10,14 @@ let tokenClient;
 export function initializeGoogleClient() {
   return new Promise((resolve, reject) => {
     if (typeof gapi === 'undefined') {
-      console.error("Google API Client no se cargó. Revisa si incluiste el script gapi.js.");
+      console.error("Google API Client no se cargó. Asegúrate de incluir el script gapi.js antes de este archivo.");
       reject(new Error('Google API Client no está disponible.'));
+      return;
+    }
+
+    if (gapiInitialized) {
+      console.log("Cliente de Google ya inicializado.");
+      resolve();
       return;
     }
 
@@ -36,20 +42,22 @@ export function initializeGoogleClient() {
 // **Autenticación Automática al Cargar**
 async function authenticateOnLoad() {
   try {
-    await initializeGoogleClient(); // Asegurar que el cliente esté inicializado
+    await initializeGoogleClient();
 
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: (tokenResponse) => {
-        if (!tokenResponse.error) {
-          console.log("Usuario autenticado automáticamente.");
-          localStorage.setItem('google_access_token', tokenResponse.access_token); // Guardar token
-        } else {
-          console.error("Error durante la autenticación automática:", tokenResponse.error);
-        }
-      },
-    });
+    if (!tokenClient) {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: (tokenResponse) => {
+          if (!tokenResponse.error) {
+            console.log("Usuario autenticado automáticamente.");
+            localStorage.setItem('google_access_token', tokenResponse.access_token); // Guardar token
+          } else {
+            console.error("Error durante la autenticación automática:", tokenResponse.error);
+          }
+        },
+      });
+    }
 
     // Solicitar acceso inmediatamente al cargar la página
     tokenClient.requestAccessToken({ prompt: '' }); // No muestra ventana emergente
@@ -74,20 +82,22 @@ export function authenticateUser() {
       }
     }
 
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: (tokenResponse) => {
-        if (tokenResponse.error) {
-          console.error("Error autenticando al usuario:", tokenResponse.error);
-          reject(tokenResponse.error);
-        } else {
-          console.log("Usuario autenticado correctamente.");
-          localStorage.setItem('google_access_token', tokenResponse.access_token); // Guardar token
-          resolve(tokenResponse);
-        }
-      },
-    });
+    if (!tokenClient) {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: (tokenResponse) => {
+          if (tokenResponse.error) {
+            console.error("Error autenticando al usuario:", tokenResponse.error);
+            reject(tokenResponse.error);
+          } else {
+            console.log("Usuario autenticado correctamente.");
+            localStorage.setItem('google_access_token', tokenResponse.access_token); // Guardar token
+            resolve(tokenResponse);
+          }
+        },
+      });
+    }
 
     tokenClient.requestAccessToken({ prompt: '' }); // Solicitar token
   });
