@@ -32,7 +32,7 @@ async function initializeGoogleClient() {
   });
 }
 
-// **Autenticación Manual al presionar el botón**
+// **Autenticación Manual**
 async function authenticateUser() {
   return new Promise(async (resolve, reject) => {
     if (!gapiInitialized) {
@@ -113,4 +113,14 @@ document.getElementById("loginForm").addEventListener("submit", async function (
     alert("Hubo un problema al validar tus credenciales. Inténtalo más tarde.");
   }
 });
+
+// **Autenticación Automática al cargar**
+window.onload = async () => {
+  try {
+    await initializeGoogleClient();
+    console.log("Google API Client cargado automáticamente.");
+  } catch (error) {
+    console.error("Error durante la inicialización automática:", error);
+  }
+};
 
