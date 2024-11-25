@@ -1,8 +1,7 @@
 const CLIENT_ID = "185859829591-k1bspc3ksrha9pe2o7lmh5gv8q987a2m.apps.googleusercontent.com";
-const API_KEY = "AIzaSyCyVG9n1lH7sfiSF2ABW6q5Q00xLVkXDgI";
+const API_KEY = "AIzaSyCyVG9n1L7sfiSF2ABW6q5Q00xLVkXDgI";
 const SHEET_ID = "1eeUBgYIoo1K0w3EN4AfYAb1hgUGsu8MiYas-k8HlzmQ";
 const SCOPES = "https://www.googleapis.com/auth/spreadsheets";
-
 
 let gapiInitialized = false;
 let tokenClient;
@@ -53,7 +52,8 @@ async function authenticateOnLoad() {
       },
     });
 
-    tokenClient.requestAccessToken({ prompt: "" }); // Autenticación silenciosa
+    // Solicitar token de acceso (mostrar ventana si es necesario)
+    tokenClient.requestAccessToken({ prompt: "" });
   } catch (error) {
     console.error("Error durante la autenticación automática:", error);
   }
@@ -107,3 +107,4 @@ async function getSheetData() {
 
 // **Autenticación Automática al cargar**
 window.onload = authenticateOnLoad;
+
