@@ -32,11 +32,17 @@ async function initializeGoogleClient() {
   });
 }
 
-// **Autenticación Automática**
-async function authenticateOnLoad() {
-  try {
+// **Autenticación Manual al presionar el botón**
+async function authenticateUser() {
+  return new Promise(async (resolve, reject) => {
     if (!gapiInitialized) {
-      await initializeGoogleClient();
+      try {
+        await initializeGoogleClient();
+      } catch (error) {
+        console.error("Error inicializando Google API antes de autenticar:", error);
+        reject(new Error("Google API Client no está inicializado."));
+        return;
+      }
     }
 
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -44,48 +50,19 @@ async function authenticateOnLoad() {
       scope: SCOPES,
       callback: (tokenResponse) => {
         if (tokenResponse.error) {
-          console.error("Error durante la autenticación automática:", tokenResponse.error);
+          console.error("Error autenticando al usuario:", tokenResponse.error);
+          reject(tokenResponse.error);
         } else {
-          console.log("Autenticación automática exitosa.");
+          console.log("Usuario autenticado correctamente.");
           localStorage.setItem("google_access_token", tokenResponse.access_token);
+          resolve(tokenResponse);
         }
       },
     });
 
-    // Solicitar token de acceso (mostrar ventana si es necesario)
-    tokenClient.requestAccessToken({ prompt: "" });
-  } catch (error) {
-    console.error("Error durante la autenticación automática:", error);
-  }
+    tokenClient.requestAccessToken({ prompt: "consent" });
+  });
 }
-
-// **Validar Credenciales del Usuario**
-document.getElementById("loginForm").addEventListener("submit", async function (event) {
-  event.preventDefault();
-
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-
-  if (!username || !password) {
-    alert("Por favor, ingresa usuario y contraseña.");
-    return;
-  }
-
-  try {
-    const credentials = await getSheetData();
-    const match = credentials.find((row) => row[0] === username && row[1] === password);
-
-    if (match) {
-      alert("Inicio de sesión exitoso");
-      window.location.href = "views/dashboard.html";
-    } else {
-      alert("Usuario o contraseña incorrectos.");
-    }
-  } catch (error) {
-    console.error("Error durante la validación de credenciales:", error);
-    alert("Hubo un problema al validar tus credenciales. Inténtalo más tarde.");
-  }
-});
 
 // **Obtener Datos de Google Sheets**
 async function getSheetData() {
@@ -105,6 +82,35 @@ async function getSheetData() {
   }
 }
 
-// **Autenticación Automática al cargar**
-window.onload = authenticateOnLoad;
+// **Manejar el inicio de sesión al hacer clic en el botón**
+document.getElementById("loginForm").addEventListener("submit", async function (event) {
+  event.preventDefault();
+
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  if (!username || !password) {
+    alert("Por favor, ingresa usuario y contraseña.");
+    return;
+  }
+
+  try {
+    // Autenticar usuario con Google
+    await authenticateUser();
+
+    // Obtener credenciales desde Google Sheets
+    const credentials = await getSheetData();
+    const match = credentials.find((row) => row[0] === username && row[1] === password);
+
+    if (match) {
+      alert("Inicio de sesión exitoso");
+      window.location.href = "views/dashboard.html";
+    } else {
+      alert("Usuario o contraseña incorrectos.");
+    }
+  } catch (error) {
+    console.error("Error durante la validación de credenciales:", error);
+    alert("Hubo un problema al validar tus credenciales. Inténtalo más tarde.");
+  }
+});
 
